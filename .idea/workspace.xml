@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="1deb95d8-e1d2-4c3b-9549-c7f5ebce29b7" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/app/(auth)/forgotPassword.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/(auth)/login.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/(auth)/register.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/(tabs)/home.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/(tabs)/profile.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/(tabs)/scan.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/index.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/babel.config.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/components/AuthGuard.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/components/common/Button.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/components/layout/Header.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/components/layout/TabBar.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/components/map/BusMarker.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/constants/config.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/constants/routes.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/features/auth/auth.service.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/features/auth/auth.types.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/features/bus/bus.service.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/features/bus/bus.types.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/features/tracking/tracking.hooks.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/features/tracking/tracking.service.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/features/tracking/tracking.types.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/hooks/useAuth.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/hooks/useLocation.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/hooks/useSocket.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/services/api.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/services/location.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/services/socket.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/store/app.store.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/store/auth.store.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/utils/calculateETA.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/utils/formatDate.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app.json" beforeDir="false" afterPath="$PROJECT_DIR$/app.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(tabs)/_layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(tabs)/_layout.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(tabs)/index.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(tabs)/two.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/+html.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/+not-found.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/_layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/_layout.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/modal.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="EmbeddingIndexingInfo">
+    <option name="cachedIndexableFilesCount" value="9024" />
+    <option name="fileBasedEmbeddingIndicesEnabled" value="true" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;Sujentamang&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/Sujentamang/YatriConnect_app.git&quot;,
+    &quot;accountId&quot;: &quot;92f60e23-93d6-4a00-a8ca-0c451cab9a6c&quot;
+  }
+}</component>
+  <component name="McpProjectServerCommands">
+    <commands />
+    <urls />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 0
+}</component>
+  <component name="ProjectId" id="37v1bHhjq4FaZPFEScD1aTgSWPa" />
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;javascript.preferred.runtime.type.id&quot;: &quot;node&quot;,
+    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;actions.on.save&quot;,
+    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;/Users/sujentamang/WebstormProjects/YatriConnect_app/node_modules/typescript/lib&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  }
+}</component>
+  <component name="ReactDesignerToolWindowState">
+    <option name="myId2Visible">
+      <map>
+        <entry key="com.intellij.reactbuddy.reactComponents" value="false" />
+        <entry key="com.intellij.reactbuddy.reactInspector" value="false" />
+        <entry key="com.intellij.reactbuddy.storybook" value="false" />
+      </map>
+    </option>
+  </component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/app/(auth)" />
+      <recent name="$PROJECT_DIR$/app/(tabs)" />
+      <recent name="$PROJECT_DIR$/store" />
+      <recent name="$PROJECT_DIR$/app" />
+    </key>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-d6986cc7102b-9b0f141eb926-JavaScript-WS-253.29346.143" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="1deb95d8-e1d2-4c3b-9549-c7f5ebce29b7" name="Changes" comment="" />
+      <created>1767768802294</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1767768802294</updated>
+      <workItem from="1767768803451" duration="2386000" />
+      <workItem from="1767785664539" duration="817000" />
+      <workItem from="1767838796774" duration="2001000" />
+      <workItem from="1767840817244" duration="215000" />
+      <workItem from="1767841044495" duration="23000" />
+      <workItem from="1767841076292" duration="954000" />
+      <workItem from="1767996745055" duration="2590000" />
+      <workItem from="1768061223833" duration="5243000" />
+      <workItem from="1768257100189" duration="7280000" />
+      <workItem from="1768277115781" duration="983000" />
+      <workItem from="1769162144835" duration="217000" />
+      <workItem from="1770053777015" duration="152000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+</project>
