@@ -28,6 +28,8 @@ export type CityBus = {
     currentLocation?: Point | string; 
     schedule?: any;
     yatayatName?: string;
+    active?: boolean;
+    status?: 'on-route' | 'break' | 'offline';
 };
 
 export type IntercityBus = {
@@ -50,7 +52,7 @@ type BusState = {
     intercityBuses: IntercityBus[];
     loading: boolean;
     error: string | null;
-    fetchBuses: () => Promise<void>;
+    fetchBuses: (options?: { includeInactive?: boolean }) => Promise<void>;
 };
 
 export const useBusStore = create<BusState>((set) => ({
@@ -59,12 +61,12 @@ export const useBusStore = create<BusState>((set) => ({
     loading: false,
     error: null,
 
-    fetchBuses: async () => {
+    fetchBuses: async (options) => {
         set({ loading: true, error: null });
         try {
             // Fetch both endpoints concurrently
             const [cityRes, interRes] = await Promise.all([
-                getCityBusesApi(),
+                getCityBusesApi(options),
                 getIntercityBusesApi()
             ]);
 

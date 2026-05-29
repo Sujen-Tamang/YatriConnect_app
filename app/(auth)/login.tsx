@@ -125,28 +125,6 @@ export default function Login() {
                 )}
             </TouchableOpacity>
 
-            {/* Divider */}
-            <View style={styles.divider}>
-                <View style={styles.line} />
-                <Text style={styles.or}>OR CONTINUE WITH</Text>
-                <View style={styles.line} />
-            </View>
-
-            {/* Social Buttons */}
-            <View style={styles.socialRow}>
-                <TouchableOpacity style={styles.socialBtn}>
-                    <Image
-                        source={{ uri: "https://img.icons8.com/color/48/google-logo.png" }}
-                        style={styles.socialIcon}
-                    />
-                    <Text style={styles.socialText}>Google</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.socialBtn}>
-                    <Ionicons name="logo-apple" size={22} color="#fff" />
-                    <Text style={styles.socialText}>Apple</Text>
-                </TouchableOpacity>
-            </View>
 
             {/* Sign Up */}
             <Text style={styles.footer}>

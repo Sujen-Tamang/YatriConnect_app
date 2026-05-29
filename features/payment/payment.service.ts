@@ -5,6 +5,7 @@ export const initiateKhaltiPaymentApi = async (data: {
     busId: string;
     seats: string[];
     journeyDate: string;
+    redirectUrl?: string;
 }) => {
     const res = await api.post("/payments/khalti/initiate", data);
     return res.data;

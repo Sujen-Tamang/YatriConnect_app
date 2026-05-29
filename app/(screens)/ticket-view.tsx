@@ -1,15 +1,63 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
+import React, { useMemo, useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, ActivityIndicator, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
+import { getBookingByIdApi } from '@/features/booking/booking.service';
 
 const { width } = Dimensions.get('window');
 
 export default function TicketViewScreen() {
     const router = useRouter();
     const params = useLocalSearchParams();
-    const booking = useMemo(() => params.booking ? JSON.parse(params.booking as string) : null, [params.booking]);
+    
+    const initialBooking = useMemo(() => {
+        if (params.booking) {
+            try {
+                return JSON.parse(params.booking as string);
+            } catch (e) {
+                console.error("Failed to parse booking param", e);
+            }
+        }
+        return null;
+    }, [params.booking]);
+
+    const [booking, setBooking] = useState<any>(initialBooking);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (initialBooking) {
+            setBooking(initialBooking);
+        } else if (params.bookingId) {
+            fetchBooking(params.bookingId as string);
+        }
+    }, [initialBooking, params.bookingId]);
+
+    const fetchBooking = async (id: string) => {
+        try {
+            setLoading(true);
+            const response = await getBookingByIdApi(id);
+            if (response.success && response.data) {
+                setBooking(response.data);
+            } else {
+                Alert.alert("Error", "Failed to retrieve booking details.");
+            }
+        } catch (error) {
+            console.error("Failed to fetch booking:", error);
+            Alert.alert("Error", "An error occurred while loading booking details.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator size="large" color="#59f20d" />
+                <Text style={{ color: '#9ca3af', marginTop: 15, fontSize: 16 }}>Loading boarding pass...</Text>
+            </View>
+        );
+    }
 
     if (!booking) {
         return (
@@ -46,7 +94,13 @@ export default function TicketViewScreen() {
         <View style={styles.container}>
              {/* Header */}
              <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
+                <TouchableOpacity onPress={() => {
+                    if (params.fromBooking === 'true') {
+                        router.replace('/(tabs)/home' as any);
+                    } else {
+                        router.back();
+                    }
+                }} style={styles.iconBtn}>
                     <Ionicons name="arrow-back" size={24} color="#f9fafb" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Boarding Pass</Text>

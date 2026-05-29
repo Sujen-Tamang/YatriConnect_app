@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Animated, ScrollView, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Animated, ScrollView, StatusBar, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { Ionicons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -11,18 +11,21 @@ import { getCoordinateForStop } from '@/utils/mapCoordinates';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width, height } = Dimensions.get('window');
-const FALLBACK_KTM = { latitude: 27.7172, longitude: 85.3240 };
+const FALLBACK_KTM = { lat: 27.7172, lng: 85.3240 };
 
 export default function CityTrackingScreen() {
     const router = useRouter();
     const params = useLocalSearchParams();
     const busData = useMemo(() => params.busData ? JSON.parse(params.busData as string) : null, [params.busData]);
     
+    const initialStatus = (busData?.status as 'on-route' | 'break' | 'offline' | undefined) 
+        || (busData?.active === false ? 'offline' : 'on-route');
+
     const [liveLocation, setLiveLocation] = useState<Coordinate | null>(null);
     const [routeCoordinates, setRouteCoordinates] = useState<Coordinate[]>([]);
     const [stopsWithEta, setStopsWithEta] = useState<any[]>([]);
-    const [busStatus, setBusStatus] = useState<'on-route' | 'break' | 'offline'>('on-route');
-    const [isOffline, setIsOffline] = useState(false);
+    const [busStatus, setBusStatus] = useState<'on-route' | 'break' | 'offline'>(initialStatus);
+    const [isOffline, setIsOffline] = useState(initialStatus === 'offline' || busData?.active === false);
     const [loading, setLoading] = useState(true);
 
     const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -75,6 +78,14 @@ export default function CityTrackingScreen() {
             const coord = (s.lat && s.lng) ? { lat: s.lat, lng: s.lng } : getCoordinateForStop(name) || FALLBACK_KTM;
             return { name, coord };
         });
+    }, [busData]);
+
+    useEffect(() => {
+        if (!busData) return;
+        const nextStatus = (busData.status as 'on-route' | 'break' | 'offline' | undefined) 
+            || (busData.active === false ? 'offline' : 'on-route');
+        setBusStatus(nextStatus);
+        setIsOffline(nextStatus === 'offline' || busData.active === false);
     }, [busData]);
 
     useEffect(() => {
@@ -158,6 +169,10 @@ export default function CityTrackingScreen() {
                 })));
             } catch (err) {
                 console.error("CityTracking: Route load failed", err);
+                const fallbackCoords = stopsList.map((s) => s.coord);
+                if (fallbackCoords.length > 1) {
+                    setRouteCoordinates(fallbackCoords);
+                }
             } finally {
                 setLoading(false);
             }
@@ -165,43 +180,103 @@ export default function CityTrackingScreen() {
         fetchRouteData();
     }, [stopsList]);
 
-    // 3. Real ETA Calculation based on Backend Processing
+    // Helper to calculate distance in meters using Haversine formula
+    const getHaversineDistance = (coord1: { lat: number; lng: number }, coord2: { lat: number; lng: number }) => {
+        const toRad = (x: number) => (x * Math.PI) / 180;
+        const R = 6371e3; // Earth radius in meters
+        const dLat = toRad(coord2.lat - coord1.lat);
+        const dLon = toRad(coord2.lng - coord1.lng);
+        const lat1 = toRad(coord1.lat);
+        const lat2 = toRad(coord2.lat);
+
+        const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    };
+
+    // 3. Real-time Location-responsive Client-side ETA Calculation
     useEffect(() => {
-        if (!liveLocation || !busData?._id) return;
+        if (!liveLocation || stopsList.length === 0) return;
 
-        const updateRealEtas = async () => {
-            try {
-                const response = await getCityBusEtaApi(busData._id);
-                if (response.success && response.etas) {
-                    const backendEtas = response.etas;
-                    const updatedStops = stopsList.map(s => {
-                        const backendEta = backendEtas.find((e: any) => e.name === s.name);
-                        return {
-                            ...s,
-                            eta: backendEta ? (backendEta.minutes === 0 ? 'Now' : `${backendEta.minutes}m`) : 'Soon',
-                            status: backendEta ? (backendEta.minutes === 0 ? 'Arrived' : 'Upcoming') : 'Upcoming'
-                        };
-                    });
-                    setStopsWithEta(updatedStops);
-                }
-            } catch (err) {
-                console.log("Real ETA Update failed", err);
+        // Find the stop closest to the bus's live location
+        let closestIndex = 0;
+        let minDistance = Infinity;
+
+        stopsList.forEach((stop, idx) => {
+            const distance = getHaversineDistance(
+                { lat: liveLocation.lat, lng: liveLocation.lng },
+                { lat: stop.coord.lat, lng: stop.coord.lng }
+            );
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestIndex = idx;
             }
-        };
+        });
 
-        const timeout = setTimeout(updateRealEtas, 5000);
-        return () => clearTimeout(timeout);
-    }, [liveLocation, busData?._id, stopsList]);
+        // If the closest stop is within 150m, we consider it Arrived
+        const isVeryClose = minDistance < 150;
+
+        // Calculate responsive ETAs for all stops
+        const updatedStops = stopsList.map((stop, idx) => {
+            let eta = 'Soon';
+            let status = 'Upcoming';
+
+            if (idx < closestIndex) {
+                eta = 'Dep';
+                status = 'Arrived';
+            } else if (idx === closestIndex) {
+                if (isVeryClose) {
+                    eta = 'Now';
+                    status = 'Arrived';
+                } else {
+                    const minutes = Math.round(minDistance / 333); // 333m/min (~20km/h)
+                    eta = minutes === 0 ? 'Now' : `${minutes}m`;
+                    status = 'Upcoming';
+                }
+            } else {
+                // For stops ahead of the closest stop, compute cumulative distance along the sequential stops
+                let cumulativeDistance = minDistance;
+                for (let i = closestIndex; i < idx; i++) {
+                    cumulativeDistance += getHaversineDistance(
+                        { lat: stopsList[i].coord.lat, lng: stopsList[i].coord.lng },
+                        { lat: stopsList[i + 1].coord.lat, lng: stopsList[i + 1].coord.lng }
+                    );
+                }
+                const minutes = Math.round(cumulativeDistance / 333);
+                eta = minutes === 0 ? 'Now' : `${minutes}m`;
+                status = 'Upcoming';
+            }
+
+            return {
+                ...stop,
+                eta,
+                status
+            };
+        });
+
+        setStopsWithEta(updatedStops);
+    }, [liveLocation, stopsList]);
 
     const region = useMemo(() => {
-        const loc = liveLocation || (stopsList.length > 0 ? stopsList[0].coord : FALLBACK_KTM);
+        // If bus is not on route, offline, or location not available, show Kathmandu Valley
+        if (isOffline || busStatus !== 'on-route' || !liveLocation) {
+            return {
+                latitude: FALLBACK_KTM.lat,
+                longitude: FALLBACK_KTM.lng,
+                latitudeDelta: 0.15,
+                longitudeDelta: 0.15,
+            };
+        }
+
         return {
-            latitude: loc.lat,
-            longitude: loc.lng,
+            latitude: liveLocation.lat,
+            longitude: liveLocation.lng,
             latitudeDelta: 0.012,
             longitudeDelta: 0.012,
         };
-    }, [liveLocation, stopsList]);
+    }, [liveLocation, isOffline, busStatus]);
 
     if (!busData) return null;
 

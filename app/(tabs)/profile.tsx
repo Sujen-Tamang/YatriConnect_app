@@ -112,82 +112,86 @@ export default function ProfileScreen() {
                 </View>
 
                 {/* Subscription Model Logic - Aero Dark Theme */}
-                {activeSubscription ? (
-                    <TouchableOpacity 
-                        style={[styles.subCard, isExpired && styles.subCardExpired]} 
-                        activeOpacity={0.9}
-                        onPress={navigateToSubDetails}
-                    >
-                        <View style={styles.subCardTop}>
-                            <View>
-                                <Text style={styles.subCardTitle}>Active Explorer Pass</Text>
-                                <Text style={[styles.subCardDays, isExpired && { color: '#ef4444' }]}>{isExpired ? "0" : daysLeft} Days Left</Text>
-                            </View>
-                            <View style={styles.subCardMeta}>
-                                <Text style={styles.subCardPackage}>{activeSubscription.planType?.toUpperCase() || "MONTHLY"} / 1mo</Text>
-                                <View style={styles.statusBadge}>
-                                    <Text style={styles.statusBadgeText}>PRO</Text>
+                {role !== 'driver' && (
+                    activeSubscription ? (
+                        <TouchableOpacity 
+                            style={[styles.subCard, isExpired && styles.subCardExpired]} 
+                            activeOpacity={0.9}
+                            onPress={navigateToSubDetails}
+                        >
+                            <View style={styles.subCardTop}>
+                                <View>
+                                    <Text style={styles.subCardTitle}>Active Explorer Pass</Text>
+                                    <Text style={[styles.subCardDays, isExpired && { color: '#ef4444' }]}>{isExpired ? "0" : daysLeft} Days Left</Text>
+                                </View>
+                                <View style={styles.subCardMeta}>
+                                    <Text style={styles.subCardPackage}>{activeSubscription.planType?.toUpperCase() || "MONTHLY"} / 1mo</Text>
+                                    <View style={styles.statusBadge}>
+                                        <Text style={styles.statusBadgeText}>PRO</Text>
+                                    </View>
                                 </View>
                             </View>
-                        </View>
-                        <View style={styles.progressBarBg}>
-                            <View style={[styles.progressBarFill, { width: `${Math.min(100, (daysLeft/30)*100)}%` }, isExpired && { backgroundColor: '#ef4444' }]} />
-                        </View>
-                        {isExpired && (
-                            <View style={styles.renewAlert}>
-                                <MaterialIcons name="warning" size={14} color="#fff" />
-                                <Text style={styles.renewAlertText}>PASS EXPIRED - RENEW NOW »</Text>
+                            <View style={styles.progressBarBg}>
+                                <View style={[styles.progressBarFill, { width: `${Math.min(100, (daysLeft/30)*100)}%` }, isExpired && { backgroundColor: '#ef4444' }]} />
                             </View>
-                        )}
-                    </TouchableOpacity>
-                ) : (
-                    <TouchableOpacity 
-                        style={styles.unsubscribedCard}
-                        onPress={() => router.push('/tickets' as any)}
-                        activeOpacity={0.9}
-                    >
-                        <View style={styles.unsubIconBox}>
-                            <Ionicons name="sparkles" size={24} color="#59f20d" />
-                        </View>
-                        <View style={styles.unsubContent}>
-                            <Text style={styles.unsubTitle}>Subscribe our Cityin service</Text>
-                            <Text style={styles.unsubSubtitle}>Get unlimited local travel & savings</Text>
-                        </View>
-                        <Ionicons name="chevron-forward" size={20} color="#59f20d" />
-                    </TouchableOpacity>
+                            {isExpired && (
+                                <View style={styles.renewAlert}>
+                                    <MaterialIcons name="warning" size={14} color="#fff" />
+                                    <Text style={styles.renewAlertText}>PASS EXPIRED - RENEW NOW »</Text>
+                                </View>
+                            )}
+                        </TouchableOpacity>
+                    ) : (
+                        <TouchableOpacity 
+                            style={styles.unsubscribedCard}
+                            onPress={() => router.push('/tickets' as any)}
+                            activeOpacity={0.9}
+                        >
+                            <View style={styles.unsubIconBox}>
+                                <Ionicons name="sparkles" size={24} color="#59f20d" />
+                            </View>
+                            <View style={styles.unsubContent}>
+                                <Text style={styles.unsubTitle}>Subscribe our Cityin service</Text>
+                                <Text style={styles.unsubSubtitle}>Get unlimited local travel & savings</Text>
+                            </View>
+                            <Ionicons name="chevron-forward" size={20} color="#59f20d" />
+                        </TouchableOpacity>
+                    )
                 )}
 
                 {/* My Transit */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>My Transit</Text>
-                    <View style={styles.card}>
-                        <TouchableOpacity style={styles.cardItem} onPress={() => router.push('/(screens)/saved-routes' as any)}>
-                            <View style={styles.cardItemContent}>
-                                <View style={[styles.iconCircle, { backgroundColor: 'rgba(89, 242, 13, 0.1)' }]}>
-                                    <MaterialIcons name="map" size={24} color="#59f20d" />
+                {role !== 'driver' && (
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>My Transit</Text>
+                        <View style={styles.card}>
+                            <TouchableOpacity style={styles.cardItem} onPress={() => router.push('/(screens)/saved-routes' as any)}>
+                                <View style={styles.cardItemContent}>
+                                    <View style={[styles.iconCircle, { backgroundColor: 'rgba(89, 242, 13, 0.1)' }]}>
+                                        <MaterialIcons name="map" size={24} color="#59f20d" />
+                                    </View>
+                                    <View>
+                                        <Text style={styles.cardTitle}>Saved Routes</Text>
+                                        <Text style={styles.cardSubtitle}>3 Active routes</Text>
+                                    </View>
                                 </View>
-                                <View>
-                                    <Text style={styles.cardTitle}>Saved Routes</Text>
-                                    <Text style={styles.cardSubtitle}>3 Active routes</Text>
-                                </View>
-                            </View>
-                            <MaterialIcons name="chevron-right" size={20} color="#9ca3af" />
-                        </TouchableOpacity>
+                                <MaterialIcons name="chevron-right" size={20} color="#9ca3af" />
+                            </TouchableOpacity>
 
-                        <TouchableOpacity style={[styles.cardItem, styles.cardItemBorderTop]} onPress={() => router.push('/(screens)/favorite-stops' as any)}>
-                            <View style={styles.cardItemContent}>
-                                <View style={[styles.iconCircle, { backgroundColor: 'rgba(255, 152, 0, 0.1)' }]}>
-                                    <MaterialIcons name="directions-bus" size={24} color="#ff9800" />
+                            <TouchableOpacity style={[styles.cardItem, styles.cardItemBorderTop]} onPress={() => router.push('/(screens)/favorite-stops' as any)}>
+                                <View style={styles.cardItemContent}>
+                                    <View style={[styles.iconCircle, { backgroundColor: 'rgba(255, 152, 0, 0.1)' }]}>
+                                        <MaterialIcons name="directions-bus" size={24} color="#ff9800" />
+                                    </View>
+                                    <View>
+                                        <Text style={styles.cardTitle}>Favorite Stops</Text>
+                                        <Text style={styles.cardSubtitle}>Home, Work, Downtown</Text>
+                                    </View>
                                 </View>
-                                <View>
-                                    <Text style={styles.cardTitle}>Favorite Stops</Text>
-                                    <Text style={styles.cardSubtitle}>Home, Work, Downtown</Text>
-                                </View>
-                            </View>
-                            <MaterialIcons name="chevron-right" size={20} color="#9ca3af" />
-                        </TouchableOpacity>
+                                <MaterialIcons name="chevron-right" size={20} color="#9ca3af" />
+                            </TouchableOpacity>
+                        </View>
                     </View>
-                </View>
+                )}
 
                 {/* Preferences */}
                 <View style={styles.section}>

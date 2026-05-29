@@ -13,8 +13,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
 import { getAvailableSeatsApi, reserveSeatsApi, cancelReservationApi } from '@/features/bus/bus.service';
-import { initiateKhaltiPaymentApi } from '@/features/payment/payment.service';
+import { initiateKhaltiPaymentApi, verifyKhaltiPaymentApi } from '@/features/payment/payment.service';
 import { useAuthStore } from '@/store/auth.store';
 
 const { width } = Dimensions.get('window');
@@ -47,7 +48,7 @@ export default function BookingScreen() {
     }, [busData?.id]);
 
     useEffect(() => {
-        let interval: NodeJS.Timeout;
+        let interval: any;
         if (reserved && timeLeft > 0) {
             interval = setInterval(() => {
                 setTimeLeft((prev) => prev - 1);
@@ -148,34 +149,46 @@ export default function BookingScreen() {
 
         try {
             setPaymentLoading(true);
+            const redirectUrl = Linking.createURL('ticket-view');
             const bookingData = {
                 amount: busData.price * selectedSeats.length,
                 busId: busData.id || busData._id,
                 seats: selectedSeats,
                 journeyDate: new Date().toISOString(), // In a real app, this would be selected by user
+                isMobile: true,
+                redirectUrl,
             };
 
             const response = await initiateKhaltiPaymentApi(bookingData);
             
             if (response.success && response.payment_url) {
-                const result = await WebBrowser.openBrowserAsync(response.payment_url);
+                // Open Khalti portal. Khalti will redirect to our frontend React site, 
+                // which will verify it and execute window.location.href = 'yatriconnect://ticket-view?bookingId=...'
+                const webResult = await WebBrowser.openAuthSessionAsync(response.payment_url, redirectUrl);
                 
-                // After returning from browser, we should check status
-                // For now, let's navigate to a "success" or "ticket" view if they come back
-                // In production, we'd verify the payment first
-                if (result.type === 'cancel') {
-                    // User closed the browser, check if payment was actually done
+                // Once the browser closes (either by user or by redirecting to yatriconnect://)
+                console.log("WebBrowser Result:", webResult);
+                
+                if (webResult.type === 'success' && webResult.url) {
+                    // Extract booking ID from the returned URL (yatriconnect://ticket-view?bookingId=...)
+                    const match = webResult.url.match(/bookingId=([^&]+)/);
+                    if (match && match[1]) {
+                        router.replace({
+                            pathname: '/(screens)/ticket-view' as any,
+                            params: { bookingId: match[1], fromBooking: 'true' }
+                        });
+                    } else {
+                        Alert.alert("Payment Info", "Payment completed. Please check your active bookings.");
+                        router.replace('/(tabs)/home' as any);
+                    }
+                } else {
+                    Alert.alert("Payment Cancelled", "Payment window was closed or interrupted.");
                 }
-                
-                // Navigate to ticket view with the booking ID
-                router.push({
-                    pathname: '/ticket-view' as any,
-                    params: { booking: JSON.stringify({ ...bookingData, status: 'Confirmed', bookingId: response.bookingId, bus: busData }) }
-                });
             } else {
                 Alert.alert("Payment Error", response.message || "Failed to initiate payment.");
             }
         } catch (error: any) {
+            console.error("Payment Initiation Error:", error.response?.data || error.message);
             Alert.alert("Payment Failure", error.response?.data?.message || "An error occurred during payment initiation.");
         } finally {
             setPaymentLoading(false);

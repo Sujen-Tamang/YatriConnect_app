@@ -30,3 +30,13 @@ export const resetPasswordApi = async (token: string, data: any) => {
     const res = await api.put(`/auth/reset-password/${token}`, data);
     return res.data;
 };
+
+export const updateProfileApi = async (data: any) => {
+    const res = await api.put("/auth/update-profile", data);
+    return res.data;
+};
+
+export const updatePasswordApi = async (data: any) => {
+    const res = await api.put("/auth/update-password", data);
+    return res.data;
+};

@@ -1,20 +1,66 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useAuthStore } from '@/store/auth.store';
+import { updateProfileApi } from '@/features/auth/auth.service';
 
 export default function EditProfileScreen() {
     const router = useRouter();
+    const { user, updateUser } = useAuthStore();
+    
+    const [fullName, setFullName] = useState('');
+    const [phone, setPhone] = useState('');
+    const [appEmail, setAppEmail] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    
+    useEffect(() => {
+        if (user) {
+            setFullName(user.fullName || user.name || '');
+            setPhone(user.phone || '');
+            setAppEmail(user.email || '');
+        }
+    }, [user]);
+
+    const handleSave = async () => {
+        if (!fullName.trim()) {
+            Alert.alert("Error", "Name is required.");
+            return;
+        }
+
+        try {
+            setIsLoading(true);
+            const res = await updateProfileApi({ fullName });
+            
+            if (res.success) {
+                // The API currently might only update db, so let's update local context too
+                // Ensure field maps properly to user object structure
+                await updateUser({ fullName, name: fullName });
+                Alert.alert("Success", "Profile updated successfully.", [
+                    { text: "OK", onPress: () => router.back() }
+                ]);
+            } else {
+                Alert.alert("Error", res.message || "Failed to update profile");
+            }
+        } catch (error: any) {
+            console.error(error);
+            Alert.alert("Error", error.response?.data?.message || "Something went wrong.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} disabled={isLoading}>
                     <Ionicons name="arrow-back" size={24} color="#f9fafb" />
                 </TouchableOpacity>
                 <Text style={styles.title}>Edit Profile</Text>
-                <TouchableOpacity><Text style={styles.saveBtn}>Save</Text></TouchableOpacity>
+                <TouchableOpacity onPress={handleSave} disabled={isLoading}>
+                    {isLoading ? <ActivityIndicator color="#34d399" /> : <Text style={styles.saveBtn}>Save</Text>}
+                </TouchableOpacity>
             </View>
 
             <ScrollView contentContainerStyle={styles.content}>
@@ -25,12 +71,34 @@ export default function EditProfileScreen() {
                 
                 <View style={styles.inputGroup}>
                     <Text style={styles.label}>Full Name</Text>
-                    <TextInput style={styles.input} value="Alex Johnson" placeholderTextColor="#9ca3af" />
+                    <TextInput 
+                        style={styles.input} 
+                        value={fullName} 
+                        onChangeText={setFullName}
+                        placeholderTextColor="#9ca3af" 
+                    />
                 </View>
 
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Email Address</Text>
-                    <TextInput style={styles.input} value="alex.j@example.com" placeholderTextColor="#9ca3af" keyboardType="email-address" />
+                    <Text style={styles.label}>Email Address (Cannot be changed)</Text>
+                    <TextInput 
+                        style={[styles.input, { opacity: 0.6 }]} 
+                        value={appEmail} 
+                        editable={false}
+                        placeholderTextColor="#9ca3af" 
+                        keyboardType="email-address" 
+                    />
+                </View>
+
+                <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Phone Number (Cannot be changed)</Text>
+                    <TextInput 
+                        style={[styles.input, { opacity: 0.6 }]} 
+                        value={phone} 
+                        editable={false}
+                        placeholderTextColor="#9ca3af" 
+                        keyboardType="phone-pad" 
+                    />
                 </View>
             </ScrollView>
         </SafeAreaView>

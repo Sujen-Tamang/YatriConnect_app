@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
-import { initiateSubscriptionApi } from '@/features/subscription/subscription.service';
+import { initiateSubscriptionApi, verifySubscriptionPaymentApi } from '@/features/subscription/subscription.service';
 
 const { width } = Dimensions.get('window');
 
@@ -54,19 +54,24 @@ export default function CityPassesScreen() {
     const handlePurchase = async (planId: string) => {
         setLoading(planId);
         try {
-            const response = await initiateSubscriptionApi({ planType: planId });
+            const response = await initiateSubscriptionApi({ planType: planId, isMobile: true });
             
             if (response.success && response.paymentUrl) {
                 // Open Khalti Payment
-                const result = await WebBrowser.openBrowserAsync(response.paymentUrl);
+                const redirectUrl = "yatriconnect://";
+                await WebBrowser.openAuthSessionAsync(response.paymentUrl, redirectUrl);
                 
-                // After returning from browser, navigate to profile or tickets to see the new sub
-                // In a production app, we'd poll for status or use a deep link callback
-                Alert.alert(
-                    "Payment Processed",
-                    "If your payment was successful, your pass will be active shortly. Please check your profile.",
-                    [{ text: "OK", onPress: () => router.push('/(tabs)/profile') }]
-                );
+                // Verify subscription payment immediately on return
+                try {
+                    await verifySubscriptionPaymentApi({ pidx: response.pidx, subscriptionId: response.subscriptionId });
+                    Alert.alert("Subscription Activated", "Your transit pass is now active and ready to use!");
+                } catch (verifyError: any) {
+                    console.log("Subscription verification failed:", verifyError?.message);
+                    Alert.alert("Pass Verification", "Your pass activation is being processed. It will show as active in a moment.");
+                }
+                
+                // Navigate to pass view to see the active pass
+                router.push('/(screens)/pass-view' as any);
             } else {
                 throw new Error("Failed to initiate payment");
             }

@@ -31,7 +31,9 @@ export default function DriverDashboard() {
     const [assignedBus, setAssignedBus] = useState<any>(null);
     const [permission, requestPermission] = useCameraPermissions();
     const [scanned, setScanned] = useState(false);
+    const [scannedTickets, setScannedTickets] = useState<any[]>([]);
     const locationSubscription = useRef<any>(null);
+    const scanLock = useRef<boolean>(false);
 
     useEffect(() => {
         setupSocket();
@@ -141,31 +143,92 @@ export default function DriverDashboard() {
     };
 
     const handleBarcodeScanned = async ({ data }: { data: string }) => {
+        if (scanned || scanLock.current) return;
+        
+        // Prevent concurrent identical requests
+        scanLock.current = true;
         setScanned(true);
-        Vibration.vibrate(50);
 
         try {
+            // Parse data first to check for duplicates locally
+            let parsedData;
+            try {
+                parsedData = typeof data === 'string' ? JSON.parse(data) : data;
+            } catch(e) {
+                parsedData = { id: data };
+            }
+            
+            const ticketId = parsedData.id || parsedData.bookingId || data;
+            
+            // Check if already scanned locally
+            if (scannedTickets.some(t => t.ticketId === ticketId)) {
+                Vibration.vibrate([100, 100, 100]); // Triple error buzz 
+                Alert.alert(
+                    "Already Scanned",
+                    "This ticket has already been verified.",
+                    [{ text: "OK", onPress: () => {
+                        setTimeout(() => {
+                            setScanned(false);
+                            scanLock.current = false;
+                        }, 2000);
+                    }}]
+                );
+                return;
+            }
+
+            Vibration.vibrate(50);
             const res = await api.post('/city-buses/verify-ticket', { ticketData: data });
             
             if (res.data.status === 'VALID') {
-                Vibration.vibrate([0, 100, 50, 100]);
-                Alert.alert(
-                    "Verification Successful",
-                    `Passenger: ${res.data.details.passenger}\nType: ${res.data.message}\nStatus: ${res.data.status}`,
-                    [{ text: "CONFIRM ENTRY", onPress: () => setScanned(false) }]
-                );
+                const passengerName = res.data.details.passenger || 'Unknown';
+                const seatsArr = res.data.details.seats || [];
+                const seatsCount = seatsArr.length > 0 ? seatsArr.length : 1;
+                const newTicketId = res.data.details.id || ticketId;
+
+                // Double check just in case async took a bit and user snapped twice
+                setScannedTickets(prev => {
+                    if (prev.some(t => t.ticketId === newTicketId)) return prev;
+
+                    Vibration.vibrate([0, 100, 50, 100]);
+                    return [{
+                        id: Date.now().toString(),
+                        ticketId: newTicketId,
+                        passenger: passengerName,
+                        seatsCount: seatsCount,
+                        seatsList: seatsArr.join(', '),
+                        message: res.data.message,
+                        time: new Date().toLocaleTimeString()
+                    }, ...prev];
+                });
+
+                // Resume scanning automatically after 1.5 seconds
+                setTimeout(() => {
+                    setScanned(false);
+                    scanLock.current = false;
+                }, 1500);
             } else {
                 Vibration.vibrate(500);
                 Alert.alert(
                     "Invalid Ticket",
                     `${res.data.message}\nPassenger: ${res.data.details.passenger}`,
-                    [{ text: "DENY ENTRY", style: 'destructive', onPress: () => setScanned(false) }]
+                    [{ text: "DISMISS", style: 'destructive', onPress: () => {
+                        setTimeout(() => {
+                            setScanned(false);
+                            scanLock.current = false;
+                        }, 1500);
+                    }}]
                 );
             }
         } catch (error: any) {
             console.error("Verification error", error);
-            Alert.alert("Error", error.response?.data?.message || "Failed to verify ticket. Please try again.");
-            setScanned(false);
+            Alert.alert("Error", error.response?.data?.message || "Failed to verify ticket.",
+                 [{ text: "OK", onPress: () => {
+                     setTimeout(() => {
+                         setScanned(false);
+                         scanLock.current = false;
+                     }, 1500);
+                 }}]
+            );
         }
     };
 
@@ -206,6 +269,31 @@ export default function DriverDashboard() {
 
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 
+                {/* Assigned Vehicle & Stats on Top */}
+                {assignedBus && (
+                    <View style={[styles.vehicleSummary, { marginBottom: 16 }]}>
+                        <View style={{flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12}}>
+                            <Ionicons name="bus" size={20} color="#59f20d" />
+                            <Text style={styles.vehicleText}>Vehicle <Text style={{ color: '#fff', fontWeight: 'bold' }}>{assignedBus.busNumber}</Text> is currently assigned to you.</Text>
+                        </View>
+                        
+                        <View style={styles.seatStatsGrid}>
+                            <View style={styles.seatStatBox}>
+                                <Text style={styles.seatStatLabel}>Total Booked Seats</Text>
+                                <Text style={styles.seatStatValue}>
+                                    {assignedBus.seats ? assignedBus.seats.filter((s: any) => s.isBooked).length : 'N/A'}
+                                </Text>
+                            </View>
+                            <View style={styles.seatStatBox}>
+                                <Text style={styles.seatStatLabel}>Total Entry Seats</Text>
+                                <Text style={[styles.seatStatValue, {color: '#59f20d'}]}>
+                                    {scannedTickets.reduce((sum, t) => sum + (t.seatsCount || 1), 0)}
+                                </Text>
+                            </View>
+                        </View>
+                    </View>
+                )}
+
                 {/* 1. Shift Module - The Controls */}
                 <View style={styles.card}>
                     <Text style={styles.cardTitle}>Shift Management</Text>
@@ -276,11 +364,24 @@ export default function DriverDashboard() {
                     </View>
                 </TouchableOpacity>
 
-                {/* Assigned Vehicle Summary */}
-                {assignedBus && (
-                    <View style={styles.vehicleSummary}>
-                        <Ionicons name="bus" size={20} color="#59f20d" />
-                        <Text style={styles.vehicleText}>Vehicle <Text style={{ color: '#fff', fontWeight: 'bold' }}>{assignedBus.busNumber}</Text> is currently assigned to you.</Text>
+                {/* Scanned Tickets List */}
+                {scannedTickets.length > 0 && (
+                    <View style={styles.ticketListContainer}>
+                        <Text style={styles.cardTitle}>Verified Tickets ({scannedTickets.length})</Text>
+                        {scannedTickets.map(ticket => (
+                            <View key={ticket.id} style={styles.scannedTicketItem}>
+                                <View style={styles.scannedTicketIcon}>
+                                    <Ionicons name="checkmark-circle" size={24} color="#59f20d" />
+                                </View>
+                                <View style={styles.scannedTicketDetails}>
+                                    <Text style={styles.scannedTicketPassenger}>{ticket.passenger}</Text>
+                                    <Text style={styles.scannedTicketMsg}>
+                                        {ticket.message} {ticket.seatsList ? `• Seats: ${ticket.seatsList}` : ''}
+                                    </Text>
+                                </View>
+                                <Text style={styles.scannedTicketTime}>{ticket.time}</Text>
+                            </View>
+                        ))}
                     </View>
                 )}
 
@@ -334,8 +435,21 @@ const styles = StyleSheet.create({
     gridLabel: { flex: 1, color: '#fff', fontSize: 16, fontWeight: 'bold' },
     notifDot: { position: 'absolute', top: 12, right: 12, width: 8, height: 8, borderRadius: 4, backgroundColor: '#ef4444', borderWidth: 2, borderColor: '#1c2619' },
 
-    vehicleSummary: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: 'rgba(89,242,13,0.05)', padding: 16, borderRadius: 20, marginHorizontal: 8 },
+    vehicleSummary: { backgroundColor: 'rgba(89,242,13,0.05)', padding: 16, borderRadius: 20, marginHorizontal: 8 },
     vehicleText: { flex: 1, color: '#a6ba9c', fontSize: 12, lineHeight: 18 },
+    
+    seatStatsGrid: { flexDirection: 'row', gap: 12, marginTop: 8 },
+    seatStatBox: { flex: 1, backgroundColor: '#1c2619', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+    seatStatLabel: { color: '#6b7280', fontSize: 10, fontWeight: 'bold', textTransform: 'uppercase', marginBottom: 4 },
+    seatStatValue: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
+
+    ticketListContainer: { marginTop: 24, paddingHorizontal: 8 },
+    scannedTicketItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1c2619', padding: 16, borderRadius: 20, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+    scannedTicketIcon: { width: 44, height: 44, borderRadius: 14, backgroundColor: 'rgba(89,242,13,0.1)', justifyContent: 'center', alignItems: 'center', marginRight: 16 },
+    scannedTicketDetails: { flex: 1 },
+    scannedTicketPassenger: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+    scannedTicketMsg: { color: '#9ca3af', fontSize: 12, marginTop: 4 },
+    scannedTicketTime: { color: '#6b7280', fontSize: 12, fontWeight: 'bold' },
 
     unauthorizedBox: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 },
     unauthorizedTitle: { color: '#fff', fontSize: 24, fontWeight: 'bold', marginTop: 24 },

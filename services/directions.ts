@@ -19,7 +19,9 @@ export const getRouteDirections = async (
   const apiKey = process.env.EXPO_PUBLIC_ORS_API_KEY;
 
   if (!apiKey || apiKey === 'your_openrouteservice_api_key_here') {
-    return fetchOSRMRoute(start, end, waypoints);
+    const msg = 'OpenRouteService API key not configured. Set EXPO_PUBLIC_ORS_API_KEY in your .env and rebuild the app.';
+    console.error(msg);
+    throw new Error(msg);
   }
 
   // Build coordinates in [lng, lat] order as required by ORS
@@ -50,34 +52,20 @@ export const getRouteDirections = async (
     const segment = feature.properties?.segments?.[0];
     return { coordinates: coords, distance: segment?.distance, duration: segment?.duration };
   } catch (error: any) {
-    console.warn('OpenRouteService failed, falling back to OSRM:', error?.message);
-    return fetchOSRMRoute(start, end, waypoints);
-  }
-};
-
-const fetchOSRMRoute = async (start: Coordinate, end: Coordinate, waypoints: Coordinate[]): Promise<RouteResponse> => {
-  try {
-    const coords = [start, ...waypoints, end].map(c => `${c.lng},${c.lat}`).join(';');
-    const url = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`;
-    
-    const response = await axios.get(url);
-    const route = response.data?.routes?.[0];
-
-    if (!route || !route.geometry || !route.geometry.coordinates) {
-      throw new Error('No route found in OSRM response');
+    // Provide clearer diagnostic when ORS rejects the request
+    if (axios.isAxiosError(error) && error.response) {
+      if (error.response.status === 403) {
+        console.error('OpenRouteService returned 403 Forbidden — likely an invalid or restricted API key.');
+      } else if (error.response.status === 401) {
+        console.error('OpenRouteService returned 401 Unauthorized — check the API key.');
+      } else {
+        console.error('OpenRouteService error:', error.response.status, error.response.data);
+      }
+    } else {
+      console.error('Network or unexpected error calling OpenRouteService:', error?.message || error);
     }
 
-    return {
-      coordinates: route.geometry.coordinates.map((c: number[]) => ({ lat: c[1], lng: c[0] })),
-      distance: route.distance,
-      duration: route.duration
-    };
-  } catch (err: any) {
-    console.error('OSRM fallback failed:', err?.message);
-    return {
-      coordinates: [start, ...waypoints, end],
-      distance: 0,
-      duration: 0
-    };
+    // Re-throw so callers can fallback to straight-line rendering if they want
+    throw error;
   }
 };

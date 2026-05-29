@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "yatriConnect",
-    "slug": "yatriConnect",
+    "slug": "yatriconnect",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -18,12 +18,15 @@
       "bundleIdentifier": "com.anonymous.yatriConnect"
     },
     "android": {
-      "permissions": ["android.permission.NFC"],
+      "permissions": [
+        "android.permission.NFC"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.anonymous.yatriConnect"
     },
     "web": {
       "bundler": "metro",
@@ -35,6 +38,14 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
-  }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "d8e94321-f617-4e02-a4c5-75c4e28037f0"
+      }
+    },
+    "owner": "soozan.tam"
+  },
+  "owner": "soozan.tam"
 }

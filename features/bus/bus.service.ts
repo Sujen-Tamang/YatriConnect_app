@@ -1,7 +1,8 @@
 import api from "@/services/api";
 
-export const getCityBusesApi = async () => {
-    const res = await api.get("/city-buses/active");
+export const getCityBusesApi = async (options?: { includeInactive?: boolean }) => {
+    const endpoint = options?.includeInactive ? "/city-buses" : "/city-buses/active";
+    const res = await api.get(endpoint);
     return res.data;
 };
 

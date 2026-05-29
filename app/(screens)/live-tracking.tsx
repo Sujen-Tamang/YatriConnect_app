@@ -8,11 +8,12 @@ import { getRouteDirections, Coordinate } from '@/services/directions';
 import { calculateBearing } from '@/utils/tracking';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getCoordinateForStop } from '@/utils/mapCoordinates';
 
 const { width, height } = Dimensions.get('window');
 
 // Fallback logic for when coordinates are null
-const FALLBACK_KTM = { latitude: 27.7172, longitude: 85.3240 };
+const FALLBACK_KTM = { lat: 27.7172, lng: 85.3240 };
 
 export default function LiveTrackingScreen() {
     const router = useRouter();
@@ -32,8 +33,8 @@ export default function LiveTrackingScreen() {
     const markerRef = useRef<any>(null);
     const markerCoordinate = useRef(
         new AnimatedRegion({
-            latitude: FALLBACK_KTM.latitude,
-            longitude: FALLBACK_KTM.longitude,
+            latitude: FALLBACK_KTM.lat,
+            longitude: FALLBACK_KTM.lng,
             latitudeDelta: 0,
             longitudeDelta: 0,
         })
@@ -164,15 +165,63 @@ export default function LiveTrackingScreen() {
         };
     }, [busData]);
 
+    // Helper to calculate distance in meters using Haversine formula
+    const getHaversineDistance = (coord1: { lat: number; lng: number }, coord2: { lat: number; lng: number }) => {
+        const toRad = (x: number) => (x * Math.PI) / 180;
+        const R = 6371e3; // Earth radius in meters
+        const dLat = toRad(coord2.lat - coord1.lat);
+        const dLon = toRad(coord2.lng - coord1.lng);
+        const lat1 = toRad(coord1.lat);
+        const lat2 = toRad(coord2.lat);
+
+        const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    };
+
     // 3. Load initial route line
     useEffect(() => {
         const loadRoute = async () => {
-            if (!busData || !busData.route || typeof busData.route === 'string') return;
+            if (!busData || !busData.route) return;
             try {
+                let startName = "";
+                let endName = "";
+                let waypointsList: any[] = [];
+
+                if (typeof busData.route === 'string') {
+                    const parts = busData.route.split('-');
+                    startName = parts[0]?.trim();
+                    endName = parts[1]?.trim();
+                } else {
+                    const fromVal = busData.route.from;
+                    const toVal = busData.route.to;
+                    startName = typeof fromVal === 'object' ? fromVal.name : fromVal;
+                    endName = typeof toVal === 'object' ? toVal.name : toVal;
+                    waypointsList = busData.route.stops || [];
+                }
+
+                const startCoord = typeof busData.route === 'object' && busData.route.from && typeof busData.route.from === 'object' && busData.route.from.lat !== undefined
+                    ? { lat: busData.route.from.lat, lng: busData.route.from.lng }
+                    : getCoordinateForStop(startName) || FALLBACK_KTM;
+
+                const endCoord = typeof busData.route === 'object' && busData.route.to && typeof busData.route.to === 'object' && busData.route.to.lat !== undefined
+                    ? { lat: busData.route.to.lat, lng: busData.route.to.lng }
+                    : getCoordinateForStop(endName) || FALLBACK_KTM;
+
+                const processedWaypoints = waypointsList.map((w: any) => {
+                    if (typeof w === 'object' && w.lat !== undefined) {
+                        return { lat: w.lat, lng: w.lng };
+                    }
+                    const name = typeof w === 'object' ? w.name : w;
+                    return getCoordinateForStop(name) || FALLBACK_KTM;
+                });
+
                 const directions = await getRouteDirections(
-                    { lat: busData.route.from.lat, lng: busData.route.from.lng },
-                    { lat: busData.route.to.lat, lng: busData.route.to.lng },
-                    busData.route.stops?.map((s: any) => ({ lat: s.lat, lng: s.lng }))
+                    startCoord,
+                    endCoord,
+                    processedWaypoints
                 );
                 setRouteCoordinates(directions.coordinates);
             } catch (err) {
@@ -182,28 +231,58 @@ export default function LiveTrackingScreen() {
         loadRoute();
     }, [busData]);
 
+    const lastEtaUpdateRef = useRef<{ time: number; lat: number; lng: number }>({ time: 0, lat: 0, lng: 0 });
+
     // 4. Dynamic ETA & Distance updates
     useEffect(() => {
-        if (!liveLocation || !busData || !busData.route || typeof busData.route === 'string') return;
+        if (!liveLocation || !busData || !busData.route) return;
 
         const updateETA = async () => {
             try {
+                let endName = "";
+                if (typeof busData.route === 'string') {
+                    const parts = busData.route.split('-');
+                    endName = parts[1]?.trim();
+                } else {
+                    const toVal = busData.route.to;
+                    endName = typeof toVal === 'object' ? toVal.name : toVal;
+                }
+
+                const endCoord = typeof busData.route === 'object' && busData.route.to && typeof busData.route.to === 'object' && busData.route.to.lat !== undefined
+                    ? { lat: busData.route.to.lat, lng: busData.route.to.lng }
+                    : getCoordinateForStop(endName) || FALLBACK_KTM;
+
                 const directions = await getRouteDirections(
                     liveLocation,
-                    { lat: busData.route.to.lat, lng: busData.route.to.lng },
+                    endCoord,
                     []
                 );
 
-                if (directions.duration) setEta(`${Math.round(directions.duration / 60)} mins`);
-                if (directions.distance) setDistance(`${(directions.distance / 1000).toFixed(1)} km`);
+                if (directions.duration !== undefined) {
+                    setEta(directions.duration === 0 ? "Now" : `${Math.round(directions.duration / 60)} mins`);
+                }
+                if (directions.distance !== undefined) {
+                    setDistance(directions.distance === 0 ? "0 km" : `${(directions.distance / 1000).toFixed(1)} km`);
+                }
             } catch (error) {
                 console.log('Dynamic ETA failed', error);
             }
         };
 
-        const timer = setTimeout(updateETA, 5000);
-        return () => clearTimeout(timer);
-    }, [liveLocation]);
+        const now = Date.now();
+        const lastUpdate = lastEtaUpdateRef.current;
+        const timeDiff = now - lastUpdate.time;
+        
+        const distanceMoved = getHaversineDistance(
+            { lat: liveLocation.lat, lng: liveLocation.lng },
+            { lat: lastUpdate.lat, lng: lastUpdate.lng }
+        );
+
+        if (timeDiff > 10000 || distanceMoved > 50 || lastUpdate.time === 0) {
+            lastEtaUpdateRef.current = { time: now, lat: liveLocation.lat, lng: liveLocation.lng };
+            updateETA();
+        }
+    }, [liveLocation, busData]);
 
     // Check if route is already saved
     useEffect(() => {
@@ -276,17 +355,23 @@ export default function LiveTrackingScreen() {
     const mapCoordinates = routeCoordinates.map(coord => ({ latitude: coord.lat, longitude: coord.lng }));
 
     const region = useMemo(() => {
-        const target = liveLocation || (mapCoordinates.length > 0 ? mapCoordinates[0] : FALLBACK_KTM);
-        const lat = 'lat' in target ? target.lat : target.latitude;
-        const lng = 'lng' in target ? target.lng : target.longitude;
+        // If bus is not on route, offline, or location not available, show Kathmandu Valley
+        if (isOffline || busStatus !== 'on-route' || !liveLocation) {
+            return {
+                latitude: FALLBACK_KTM.lat,
+                longitude: FALLBACK_KTM.lng,
+                latitudeDelta: 0.15,
+                longitudeDelta: 0.15,
+            };
+        }
 
         return {
-            latitude: lat,
-            longitude: lng,
+            latitude: liveLocation.lat,
+            longitude: liveLocation.lng,
             latitudeDelta: 0.015,
             longitudeDelta: 0.015,
         };
-    }, [liveLocation, mapCoordinates]);
+    }, [liveLocation, isOffline, busStatus]);
 
     if (!busData) return null;
 
@@ -328,7 +413,16 @@ export default function LiveTrackingScreen() {
             {/* UI Overlays */}
             <SafeAreaView style={styles.overlayContainer} pointerEvents="box-none">
                 <View style={styles.topHeader}>
-                    <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+                    <TouchableOpacity 
+                        onPress={() => {
+                            if (router.canGoBack()) {
+                                router.back();
+                            } else {
+                                router.replace('/(tabs)/home' as any);
+                            }
+                        }} 
+                        style={styles.backBtn}
+                    >
                         <Ionicons name="arrow-back" size={24} color="#fff" />
                     </TouchableOpacity>
                     <View style={styles.busInfoBox}>

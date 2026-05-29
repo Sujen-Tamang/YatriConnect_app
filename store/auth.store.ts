@@ -14,9 +14,10 @@ type AuthState = {
     verifyOtp: (data: { email: string; otp: string }) => Promise<void>;
     logout: () => Promise<void>;
     restore: () => Promise<void>;
+    updateUser: (userData: any) => Promise<void>;
 };
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
     isLoggedIn: false,
     role: null,
     token: null,
@@ -65,6 +66,21 @@ export const useAuthStore = create<AuthState>((set) => ({
         if (data) {
             const parsed = JSON.parse(data);
             set(parsed);
+        }
+    },
+
+    updateUser: async (userData: any) => {
+        const { user } = get();
+        if (user) {
+            const updatedUser = { ...user, ...userData };
+            set({ user: updatedUser });
+            
+            const currentAuth = await AsyncStorage.getItem("auth");
+            if (currentAuth) {
+                const parsedAuth = JSON.parse(currentAuth);
+                parsedAuth.user = updatedUser;
+                await AsyncStorage.setItem("auth", JSON.stringify(parsedAuth));
+            }
         }
     },
 }));

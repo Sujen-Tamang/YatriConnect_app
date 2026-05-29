@@ -191,26 +191,6 @@ export default function SignUp() {
                 )}
             </TouchableOpacity>
 
-            {/* Divider */}
-            <View style={styles.divider}>
-                <View style={styles.line} />
-                <Text style={styles.or}>Or continue with</Text>
-                <View style={styles.line} />
-            </View>
-
-            {/* Social */}
-            <View style={styles.socialRow}>
-                <TouchableOpacity style={styles.socialBtn}>
-                    <Ionicons name="logo-google" size={20} color="#fff" />
-                    <Text style={styles.socialText}>Google</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.socialBtn}>
-                    <Ionicons name="logo-github" size={20} color="#fff" />
-                    <Text style={styles.socialText}>GitHub</Text>
-                </TouchableOpacity>
-            </View>
-
             {/* Footer */}
             <Text style={styles.footer}>
                 Already have an account?{" "}

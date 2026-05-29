@@ -27,7 +27,7 @@ export default function CityinScreen() {
     const [activeSort, setActiveSort] = useState("All");
 
     useEffect(() => {
-        fetchBuses();
+        fetchBuses({ includeInactive: true });
     }, []);
 
     const hubs = ["All", "Ratnapark", "Kalanki", "Koteshwor", "Lagankhel"];
@@ -118,7 +118,7 @@ export default function CityinScreen() {
                     <View style={styles.emptyState}>
                         <Ionicons name="bus-outline" size={64} color="#1c2619" />
                         <Text style={styles.emptyTitle}>No Buses Found</Text>
-                        <Text style={styles.emptySub}>No local transit active for this filter.</Text>
+                        <Text style={styles.emptySub}>No routes available for this filter.</Text>
                     </View>
                 ) : (
                     <View style={styles.grid}>
@@ -136,6 +136,8 @@ export default function CityinScreen() {
                                  fromLabel = parts[0]?.trim() || "Point";
                                  toLabel = parts[1]?.trim() || "Hub";
                              }
+
+                             const isActive = bus?.active !== false;
 
                              return (
                                 <TouchableOpacity 
@@ -179,8 +181,10 @@ export default function CityinScreen() {
                                             <Ionicons name="time" size={14} color="#9ca3af" />
                                             <Text style={styles.statusText}>Every 15 mins</Text>
                                         </View>
-                                        <View style={styles.liveTag}>
-                                            <Text style={styles.liveText}>LIVE</Text>
+                                        <View style={isActive ? styles.liveTag : styles.inactiveTag}>
+                                            <Text style={isActive ? styles.liveText : styles.inactiveText}>
+                                                {isActive ? 'LIVE' : 'INACTIVE'}
+                                            </Text>
                                         </View>
                                     </View>
                                 </TouchableOpacity>
@@ -236,6 +240,8 @@ const styles = StyleSheet.create({
     statusText: { color: '#9ca3af', fontSize: 12, marginLeft: 6 },
     liveTag: { backgroundColor: '#59f20d', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
     liveText: { color: '#0d140a', fontWeight: 'bold', fontSize: 10 },
+    inactiveTag: { backgroundColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+    inactiveText: { color: '#9ca3af', fontWeight: 'bold', fontSize: 10 },
 
     errorText: { color: '#ef4444', textAlign: 'center', marginTop: 20 },
     emptyState: { alignItems: 'center', marginTop: 80 },

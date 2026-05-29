@@ -37,8 +37,22 @@ export default function CityToCityScreen() {
     }, []);
 
     // Memoize booked buses to prevent re-renders and handle potential data issues
+    // Deduplicate active bookings by checking uniqueness of the bus._id
     const confirmedBookings = useMemo(() => {
-        return (bookings || []).filter((t: any) => t.status === 'Confirmed' && t.bus);
+        const bookingsList = (bookings || []).filter((t: any) => t.status === 'Confirmed' && t.bus);
+        
+        // Group by yatayat/bus to show only one tracking card per bus, consolidating seats
+        const grouped = bookingsList.reduce((acc: any, t: any) => {
+            const busId = t.bus._id;
+            if (!acc[busId]) {
+                acc[busId] = { ...t, seats: [...(t.seats || [])] };
+            } else {
+                acc[busId].seats.push(...(t.seats || []));
+            }
+            return acc;
+        }, {});
+
+        return Object.values(grouped);
     }, [bookings]);
 
     const filteredBuses = useMemo(() => {
@@ -202,7 +216,7 @@ export default function CityToCityScreen() {
                                         <Text style={styles.yatayatName} numberOfLines={1}>
                                             {bus.yatayatName || "Intercity Express"}
                                         </Text>
-                                        <TouchableOpacity 
+                                        {/* <TouchableOpacity 
                                             style={styles.cardTrackBtn}
                                             onPress={(e) => {
                                                 e.stopPropagation();
@@ -214,7 +228,7 @@ export default function CityToCityScreen() {
                                         >
                                             <Ionicons name="map" size={12} color="#0d140a" />
                                             <Text style={styles.cardTrackBtnText}>TRACK</Text>
-                                        </TouchableOpacity>
+                                        </TouchableOpacity> */}
                                     </View>
 
                                     <View style={styles.cityPair}>
@@ -256,11 +270,51 @@ const RouteMetrics = ({ bus }: { bus: any }) => {
     useEffect(() => {
         const fetchMetrics = async () => {
             if (!bus.route || typeof bus.route === 'string') return;
+
+            const routeMeta = bus.route || {};
+            const distanceValue = routeMeta.distance;
+            const durationValue = routeMeta.duration;
+
+            const formatDuration = (value: any) => {
+                if (!value && value !== 0) return '';
+                if (typeof value === 'string') return value;
+                if (typeof value === 'number') {
+                    const hours = Math.floor(value / 3600);
+                    const minutes = Math.round((value % 3600) / 60);
+                    return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+                }
+                return '';
+            };
+
+            const formatDistance = (value: any) => {
+                if (!value && value !== 0) return '';
+                if (typeof value === 'string') return value;
+                if (typeof value === 'number') {
+                    const km = value > 1000 ? value / 1000 : value;
+                    return `${km.toFixed(1)} km`;
+                }
+                return '';
+            };
+
+            if (distanceValue || durationValue) {
+                setMetrics({
+                    duration: formatDuration(durationValue) || '--',
+                    distance: formatDistance(distanceValue) || '--'
+                });
+                return;
+            }
+
             try {
+                const hasCoords = routeMeta?.from?.lat && routeMeta?.from?.lng && routeMeta?.to?.lat && routeMeta?.to?.lng;
+                const orsKey = process.env.EXPO_PUBLIC_ORS_API_KEY;
+                if (!hasCoords || !orsKey) {
+                    return;
+                }
+
                 const directions = await getRouteDirections(
-                    { lat: bus.route.from.lat, lng: bus.route.from.lng },
-                    { lat: bus.route.to.lat, lng: bus.route.to.lng },
-                    bus.route.stops?.map((s: any) => ({ lat: s.lat, lng: s.lng })) || []
+                    { lat: routeMeta.from.lat, lng: routeMeta.from.lng },
+                    { lat: routeMeta.to.lat, lng: routeMeta.to.lng },
+                    routeMeta.stops?.map((s: any) => ({ lat: s.lat, lng: s.lng })) || []
                 );
                 
                 setMetrics({
